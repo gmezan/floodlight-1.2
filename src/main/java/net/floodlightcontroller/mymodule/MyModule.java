@@ -12,6 +12,7 @@ import net.floodlightcontroller.packet.Ethernet;
 import net.floodlightcontroller.packet.IPv4;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFType;
+import org.projectfloodlight.openflow.types.EthType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -20,7 +21,7 @@ import java.util.Map;
 
 public class MyModule implements IOFMessageListener, IFloodlightModule {
 
-    protected static Logger logger;
+    protected static final Logger log = LoggerFactory.getLogger(MyModule.class);
     protected IFloodlightProviderService floodlightProvider;
 
     @Override
@@ -41,10 +42,12 @@ public class MyModule implements IOFMessageListener, IFloodlightModule {
     @Override
     public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
         Ethernet eth = IFloodlightProviderService.bcStore.get(cntx, IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
-        IPv4 ip = (IPv4) eth.getPayload();
-        String destinationIP = ip.getDestinationAddress().toString();
-        logger.trace("MyModule: to " + destinationIP);
-        logger.info("MyModule: continue" + destinationIP);
+
+        if (eth.getEtherType().equals(EthType.IPv4)) {
+            IPv4 ip = (IPv4) eth.getPayload();
+            String destinationIP = ip.getDestinationAddress().toString();
+            log.info("destination: " + destinationIP);
+        }
 
         return Command.CONTINUE;
     }
@@ -67,7 +70,6 @@ public class MyModule implements IOFMessageListener, IFloodlightModule {
     @Override
     public void init(FloodlightModuleContext context) throws FloodlightModuleException {
         floodlightProvider = context.getServiceImpl(IFloodlightProviderService.class);
-        logger = LoggerFactory.getLogger(MyModule.class);
     }
 
     @Override
