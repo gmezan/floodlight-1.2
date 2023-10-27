@@ -9,24 +9,24 @@ import net.floodlightcontroller.core.module.FloodlightModuleException;
 import net.floodlightcontroller.core.module.IFloodlightModule;
 import net.floodlightcontroller.core.module.IFloodlightService;
 import net.floodlightcontroller.packet.Ethernet;
-import net.floodlightcontroller.packet.IPv4;
 import org.projectfloodlight.openflow.protocol.OFMessage;
 import org.projectfloodlight.openflow.protocol.OFType;
-import org.projectfloodlight.openflow.types.EthType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Collection;
 import java.util.Map;
+import java.util.Set;
 
-public class MyModule implements IOFMessageListener, IFloodlightModule {
+public class MacTracker implements IOFMessageListener, IFloodlightModule {
+    protected Set<Long> macAddresses;
 
-    protected static final Logger log = LoggerFactory.getLogger(MyModule.class);
+    protected static final Logger logger = LoggerFactory.getLogger(MacTracker.class);
     protected IFloodlightProviderService floodlightProvider;
 
     @Override
     public String getName() {
-        return MyModule.class.getName();
+        return MacTracker.class.getName();
     }
 
     @Override
@@ -41,15 +41,19 @@ public class MyModule implements IOFMessageListener, IFloodlightModule {
 
     @Override
     public Command receive(IOFSwitch sw, OFMessage msg, FloodlightContext cntx) {
-        Ethernet eth = IFloodlightProviderService.bcStore.get(cntx, IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
+        Ethernet eth =
+                IFloodlightProviderService.bcStore.get(cntx,
+                        IFloodlightProviderService.CONTEXT_PI_PAYLOAD);
 
-        if (eth.getEtherType().equals(EthType.IPv4)) {
-            IPv4 ip = (IPv4) eth.getPayload();
-            String destinationIP = ip.getDestinationAddress().toString();
-            log.info("destination: " + destinationIP);
+        Long sourceMACHash = eth.getSourceMACAddress().getLong();
+        if (!macAddresses.contains(sourceMACHash)) {
+            macAddresses.add(sourceMACHash);
+            logger.info("MAC Address: {} seen on switch: {}",
+                    eth.getSourceMACAddress().toString(),
+                    sw.getId().toString());
         }
-
         return Command.CONTINUE;
+
     }
 
     @Override
